@@ -20,8 +20,8 @@
 ## 2. Tech Stack
 
 - Java 25, Maven 3.9
-- Latest stable Spring Boot release (exact version pinned in the implementation plan)
-- Dependencies: `spring-boot-starter-web`, `spring-boot-starter-test` only
+- Spring Boot 4.1.1 (latest stable as of 2026-10-02)
+- Dependencies: `spring-boot-starter-webmvc`, `spring-boot-starter-webmvc-test` only (Boot 4 names for the web and test starters)
 - Base package: `com.example.shortener`
 
 ## 3. API Contract
@@ -77,7 +77,7 @@ Errors:
 ### 4.2 Alias validation
 - Length 3–30 characters inclusive.
 - Characters limited to `[A-Za-z0-9_-]`.
-- Must not be a reserved word. Reserved (compared case-insensitively): `api`.
+- Must not be a reserved word. Reserved (compared case-insensitively): `api`, `error`. (`/error` is Spring Boot's built-in error path, so a link with that alias could never redirect.)
 - Aliases are case-sensitive for uniqueness and lookup: `My-Link` and `my-link` are distinct.
 - An empty-string alias (`""`) is treated as invalid (`400`), not as "absent". Only a missing or `null` alias means "generate one".
 
@@ -85,7 +85,7 @@ Errors:
 - Generated codes are 7 characters from base62 (`[0-9A-Za-z]`), chosen randomly.
 - If a generated code collides with an existing code, generate a new one; at most 5 attempts in total.
 - If all 5 attempts collide, respond `500` (ProblemDetail). Practically unreachable (62⁷ ≈ 3.5 × 10¹² codes) but defined.
-- Generated codes are never checked against the reserved-word list. A 7-character code can never equal the 3-character `api`.
+- Generated codes are never checked against the reserved-word list. A 7-character code can never equal `api` or `error`.
 
 ### 4.4 Uniqueness and concurrency
 - Code uniqueness is enforced atomically by the repository (`putIfAbsent`). There is no separate check-then-insert.
