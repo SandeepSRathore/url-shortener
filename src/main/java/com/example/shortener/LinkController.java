@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -36,12 +38,21 @@ public class LinkController {
 
     @GetMapping("/{code}")
     public ResponseEntity<Void> redirect(@PathVariable String code) {
-        String url = linkService.resolve(code);
-        return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(url)).build();
+        return found(linkService.resolve(code));
+    }
+
+    /** HEAD gets the same redirect but is not a click: link checkers and previews must not inflate stats. */
+    @RequestMapping(path = "/{code}", method = RequestMethod.HEAD)
+    public ResponseEntity<Void> redirectHead(@PathVariable String code) {
+        return found(linkService.stats(code).url());
     }
 
     @GetMapping("/api/links/{code}")
     public LinkStats stats(@PathVariable String code) {
         return linkService.stats(code);
+    }
+
+    private static ResponseEntity<Void> found(String url) {
+        return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(url)).build();
     }
 }

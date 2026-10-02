@@ -3,6 +3,7 @@ package com.example.shortener;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -154,6 +155,26 @@ class LinkApiTest {
 
         mvc.perform(get("/api/links/go-there"))
                 .andExpect(jsonPath("$.clicks").value(1));
+    }
+
+    @Test
+    @DisplayName("R6: HEAD /{code} returns the redirect but does not count a click")
+    void headDoesNotCountClick() throws Exception {
+        createLink("{\"url\":\"" + URL + "\",\"alias\":\"head-check\"}").andExpect(status().isCreated());
+
+        mvc.perform(head("/head-check"))
+                .andExpect(status().isFound())
+                .andExpect(header().string("Location", URL));
+
+        mvc.perform(get("/api/links/head-check"))
+                .andExpect(jsonPath("$.clicks").value(0));
+    }
+
+    @Test
+    @DisplayName("R7: HEAD /{code} with unknown code returns 404")
+    void headUnknownCode() throws Exception {
+        mvc.perform(head("/does-not-exist-head"))
+                .andExpect(status().isNotFound());
     }
 
     @Test
