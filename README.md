@@ -20,6 +20,26 @@ mvn test                 # runs all tests
 
 Port 8080 busy? `mvn spring-boot:run -Dspring-boot.run.arguments=--server.port=8081`
 
+## Screenshots
+
+These were captured from a live run of the app on port 8081.
+
+**API session with curl.** Shows create, custom alias, a 409 conflict, a 400 validation error, the redirect, a HEAD request, and stats. Response headers are trimmed to the status line, `Location` and `Content-Type`.
+
+![Live curl session against the running API](docs/screenshots/01-live-api-session.png)
+
+**Stats in a browser.** Opening `/demo` in Chromium redirected to `https://example.com`. The stats page then showed `clicks: 2`: one from the curl `GET` above and one from the browser visit. The `HEAD` request didn't count.
+
+![Stats JSON in the browser](docs/screenshots/02-browser-stats.png)
+
+**Unknown code.** The response is a `404` RFC 7807 ProblemDetail.
+
+![404 ProblemDetail in the browser](docs/screenshots/03-browser-404.png)
+
+**Tests and spec traceability.** All 88 tests pass, and every spec rule (R1–R11) has at least one test whose `@DisplayName` starts with that rule's ID.
+
+![Test suite and traceability check](docs/screenshots/04-tests-and-traceability.png)
+
 ## API
 
 | Method | Path | Result |
