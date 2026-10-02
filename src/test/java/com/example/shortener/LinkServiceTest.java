@@ -128,4 +128,82 @@ class LinkServiceTest {
                 .hasMessageContaining("5");
         assertThat(codes).containsExactly("unused1"); // exactly 5 attempts were made
     }
+
+    @Test
+    @DisplayName("R6: resolve returns the original URL and counts one click")
+    void resolveReturnsUrlAndCountsClick() {
+        LinkService service = serviceGenerating();
+        service.create(URL, "my-link");
+
+        String target = service.resolve("my-link");
+
+        assertThat(target).isEqualTo(URL);
+        assertThat(service.stats("my-link").clicks()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("R6: each resolve adds exactly one click")
+    void eachResolveAddsOneClick() {
+        LinkService service = serviceGenerating();
+        service.create(URL, "my-link");
+
+        service.resolve("my-link");
+        service.resolve("my-link");
+        service.resolve("my-link");
+
+        assertThat(service.stats("my-link").clicks()).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("R7: resolve of unknown code throws LinkNotFoundException")
+    void resolveUnknownCodeThrows() {
+        LinkService service = serviceGenerating();
+
+        assertThatThrownBy(() -> service.resolve("missing"))
+                .isInstanceOf(LinkNotFoundException.class)
+                .hasMessageContaining("missing");
+    }
+
+    @Test
+    @DisplayName("R7: stats of unknown code throws LinkNotFoundException")
+    void statsUnknownCodeThrows() {
+        LinkService service = serviceGenerating();
+
+        assertThatThrownBy(() -> service.stats("missing"))
+                .isInstanceOf(LinkNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("R8: stats returns code, url, clicks and createdAt")
+    void statsReturnsAllFields() {
+        LinkService service = serviceGenerating();
+        service.create(URL, "my-link");
+
+        LinkStats stats = service.stats("my-link");
+
+        assertThat(stats).isEqualTo(new LinkStats("my-link", URL, 0, NOW));
+    }
+
+    @Test
+    @DisplayName("R8: reading stats does not add a click")
+    void statsDoesNotCountAsClick() {
+        LinkService service = serviceGenerating();
+        service.create(URL, "my-link");
+
+        service.stats("my-link");
+        service.stats("my-link");
+
+        assertThat(service.stats("my-link").clicks()).isZero();
+    }
+
+    @Test
+    void statsIsASnapshotNotALiveView() {
+        LinkService service = serviceGenerating();
+        service.create(URL, "my-link");
+        LinkStats before = service.stats("my-link");
+
+        service.resolve("my-link");
+
+        assertThat(before.clicks()).isZero();
+    }
 }

@@ -42,4 +42,20 @@ public class LinkService {
         }
         throw new CodeGenerationException(MAX_GENERATION_ATTEMPTS);
     }
+
+    /** Returns the target URL for a code and records one click. */
+    public String resolve(String code) {
+        Link link = find(code);
+        repository.incrementClicks(code);
+        return link.url();
+    }
+
+    /** Returns a snapshot of a link's stats. Does not record a click. */
+    public LinkStats stats(String code) {
+        return LinkStats.of(find(code));
+    }
+
+    private Link find(String code) {
+        return repository.findByCode(code).orElseThrow(() -> new LinkNotFoundException(code));
+    }
 }
