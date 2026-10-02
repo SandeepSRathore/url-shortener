@@ -2,7 +2,10 @@ package com.example.shortener;
 
 import java.net.URI;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,5 +32,16 @@ public class LinkController {
 
         return ResponseEntity.created(location)
                 .body(new LinkResponse(link.code(), shortUrl, link.url(), link.createdAt()));
+    }
+
+    @GetMapping("/{code}")
+    public ResponseEntity<Void> redirect(@PathVariable String code) {
+        String url = linkService.resolve(code);
+        return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(url)).build();
+    }
+
+    @GetMapping("/api/links/{code}")
+    public LinkStats stats(@PathVariable String code) {
+        return linkService.stats(code);
     }
 }

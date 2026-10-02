@@ -2,6 +2,7 @@ package com.example.shortener;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.matchesPattern;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -138,6 +139,76 @@ class LinkApiTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.title").value("Alias already taken"));
+    }
+
+    // ---- GET /{code} ----
+
+    @Test
+    @DisplayName("R6: GET /{code} redirects 302 to the original URL and counts a click")
+    void redirectCountsClick() throws Exception {
+        createLink("{\"url\":\"" + URL + "\",\"alias\":\"go-there\"}").andExpect(status().isCreated());
+
+        mvc.perform(get("/go-there"))
+                .andExpect(status().isFound())
+                .andExpect(header().string("Location", URL));
+
+        mvc.perform(get("/api/links/go-there"))
+                .andExpect(jsonPath("$.clicks").value(1));
+    }
+
+    @Test
+    @DisplayName("R7: GET /{code} with unknown code returns 404 ProblemDetail")
+    void redirectUnknownCode() throws Exception {
+        mvc.perform(get("/does-not-exist"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.title").value("Link not found"));
+    }
+
+    @Test
+    @DisplayName("R7: GET /api (no code) is an ordinary 404, not a server error")
+    void bareApiPathIsNotFound() throws Exception {
+        mvc.perform(get("/api"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
+    }
+
+    // ---- GET /api/links/{code} ----
+
+    @Test
+    @DisplayName("R7: GET stats with unknown code returns 404 ProblemDetail")
+    void statsUnknownCode() throws Exception {
+        mvc.perform(get("/api/links/does-not-exist"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.title").value("Link not found"));
+    }
+
+    @Test
+    @DisplayName("R8: GET stats returns code, url, clicks and ISO-8601 createdAt")
+    void statsReturnsAllFields() throws Exception {
+        createLink("{\"url\":\"" + URL + "\",\"alias\":\"stats-me\"}").andExpect(status().isCreated());
+
+        mvc.perform(get("/api/links/stats-me"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("stats-me"))
+                .andExpect(jsonPath("$.url").value(URL))
+                .andExpect(jsonPath("$.clicks").value(0))
+                .andExpect(jsonPath("$.createdAt").value(
+                        matchesPattern("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z")));
+    }
+
+    @Test
+    @DisplayName("R8: reading stats does not add a click")
+    void statsDoesNotCountAsClick() throws Exception {
+        createLink("{\"url\":\"" + URL + "\",\"alias\":\"just-look\"}").andExpect(status().isCreated());
+
+        mvc.perform(get("/api/links/just-look"));
+        mvc.perform(get("/api/links/just-look"));
+
+        mvc.perform(get("/api/links/just-look"))
+                .andExpect(jsonPath("$.clicks").value(0));
     }
 
     private ResultActions createLink(String json) throws Exception {
